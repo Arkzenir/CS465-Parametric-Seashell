@@ -1,0 +1,49 @@
+/* Individual control elements */
+
+#graphicsDiv {
+    float: left;
+    height: 480px;
+    width: 840px;
+}
+
+#controlsDiv {
+    float: right;
+    width: 300px;
+}
+
+
+#r0 {
+}
+
+#chir {
+}
+
+#chiz {
+}
+
+#t0 {
+}
+
+#tmax {
+}
+
+#C0 {
+}
+
+#Cscale {
+}
+
+#tstep {
+}
+
+#bezres {
+}
+
+/* Overall classes */
+.limit {
+    width: 25px;
+}
+
+.slider {
+    display: inline-block;
+}
