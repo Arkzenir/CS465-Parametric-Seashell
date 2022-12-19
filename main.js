@@ -160,6 +160,7 @@ function generateSeashell()
 			let x = (Rad + (r * Math.cos(v))) * (Math.pow(a, u) * Math.cos(j*u));
 			let y = (Rad + (r * Math.cos(v))) * ( (-1) * Math.pow(a, u) * Math.sin(j*u));
 			let z = (-1) * c * (b + (r * Math.sin(v))) * Math.pow(a, u) * (k * Math.sin(v));
+
 			positions.push(vec4(x, z, y, 1));
 			colors.push(vec4(1.0, 0.0, 0.0, 1.0));
 		}
@@ -182,6 +183,8 @@ function calculatePhong()
 
 function render()
 {
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
 	if (currProgram === WIRE){
 		gl.useProgram(wire);
 		gl.uniformMatrix4fv(wLocMV,false,flatten(modelViewMatrix));
@@ -199,7 +202,7 @@ function render()
 		}
 		*/
 
-		gl.drawArrays(gl.LINE_LOOP, 0, positions.length);
+		gl.drawArrays(gl.LINE_STRIP, 0, positions.length);
 
 	}else if (currProgram === GOURARD){
 		gl.useProgram(gourard);
@@ -224,20 +227,20 @@ function setupControls() {
 	document.getElementById("k").appendChild(makeSlider("k", kMin, kMax))
 
 	//Sync values to the data model:
-	Rad = parseInt(document.getElementById("Radslider").value)
-	r = parseInt(document.getElementById("rslider").value)
-	a = parseInt(document.getElementById("aslider").value)
-	b = parseInt(document.getElementById("bslider").value)
-	c = parseInt(document.getElementById("cslider").value)
-	j = parseInt(document.getElementById("jslider").value)
-	k = parseInt(document.getElementById("kslider").value)
+	Rad = parseFloat(document.getElementById("Radslider").value)
+	r = parseFloat(document.getElementById("rslider").value)
+	a = parseFloat(document.getElementById("aslider").value)
+	b = parseFloat(document.getElementById("bslider").value)
+	c = parseFloat(document.getElementById("cslider").value)
+	j = parseFloat(document.getElementById("jslider").value)
+	k = parseFloat(document.getElementById("kslider").value)
 
 	// Add event listeners:11
-	document.getElementById("Radslider").oninput = function() { parseInt(Rad = this.value); generateSeashell(); }
-	document.getElementById("rslider").oninput = function() { parseInt(r = this.value); generateSeashell();  }
-	document.getElementById("aslider").oninput = function() { parseInt(a = this.value); generateSeashell();  }
-	document.getElementById("bslider").oninput = function() { parseInt(b = this.value); generateSeashell();  }
-	document.getElementById("cslider").oninput = function() { parseInt(c = this.value); generateSeashell();  }
-	document.getElementById("jslider").oninput = function() { parseInt(j = this.value); generateSeashell();  }
-	document.getElementById("kslider").oninput = function() { parseInt(k = this.value); generateSeashell();  }
+	document.getElementById("Radslider").oninput = function() { Rad = parseFloat(this.value); generateSeashell(); }
+	document.getElementById("rslider").oninput = function() { r = parseFloat(this.value); generateSeashell();  }
+	document.getElementById("aslider").oninput = function() { a = parseFloat(this.value); generateSeashell();  }
+	document.getElementById("bslider").oninput = function() { b = parseFloat(this.value); generateSeashell();  }
+	document.getElementById("cslider").oninput = function() { c = parseFloat(this.value); generateSeashell();  }
+	document.getElementById("jslider").oninput = function() { j = parseFloat(this.value); generateSeashell();  }
+	document.getElementById("kslider").oninput = function() { k = parseFloat(this.value); generateSeashell();  }
 }
