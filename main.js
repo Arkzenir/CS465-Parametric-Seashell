@@ -1,4 +1,6 @@
 let needsUpdate = false;
+maxNumVertices = 60000;
+
 let Rad, r, a, b ,c ,j ,k;
 let RadMax = 2; let RadMin = 1;
 let rMax = 2; let rMin = 1;
@@ -18,14 +20,25 @@ let mvMatrix
 let positions = [];
 let normals = [];
 
+let vBuffer;
+let nPhongBuffer;
+let nGourardBuffer;
+let cBuffer;
+
+
 window.onload = function init() {
-	canvas = document.getElementById("gl-canvas");
-	gl = WebGLUtils.setupWebGL(canvas);
+	//canvas = document.getElementById("gl-canvas");
+	//gl = WebGLUtils.setupWebGL(canvas);
 	if (!gl) {
 		alert("WebGL isn't available");
 	}
 
-	gl.viewport(0, 0, canvas.width, canvas.height);
+	let container = document.getElementById( "graphicsDiv" )
+	let width = container.offsetWidth;
+	let height = container.offsetHeight;
+	gl = WebGLUtils.setupWebGL(container);
+
+	gl.viewport(0, 0, width, height);
 	gl.clearColor(0.85, 0.85, 0.85, 1.0);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -41,6 +54,46 @@ window.onload = function init() {
 	wLoc = gl.getUniformLocation(wire, "projectionMatrix");
 	pLoc = gl.getUniformLocation(phong, "projectionMatrix");
 	gLoc = gl.getUniformLocation(gourard, "projectionMatrix");
+
+	vBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, 16 * maxNumVertices, gl.STATIC_DRAW);
+
+	const vPosition = gl.getAttribLocation(wire, "vPosition");
+	gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(vPosition);
+
+	const vPositionGourard = gl.getAttribLocation(gourard, "vPosition");
+	gl.vertexAttribPointer(vPositionGourard, 4, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(vPositionGourard);
+
+	const vPositionPhong = gl.getAttribLocation(phong, "vPosition");
+	gl.vertexAttribPointer(vPositionPhong, 4, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(vPositionPhong);
+
+	nGourardBuffer = gl.createBuffer();
+	gl.bindBuffer( gl.ARRAY_BUFFER, nGourardBuffer );
+	gl.bufferData( gl.ARRAY_BUFFER, 12 * maxNumVertices, gl.STATIC_DRAW );
+
+	nPhongBuffer = gl.createBuffer();
+	gl.bindBuffer( gl.ARRAY_BUFFER, nPhongBuffer );
+	gl.bufferData( gl.ARRAY_BUFFER, 16 * maxNumVertices, gl.STATIC_DRAW );
+
+	const vNormalGourard = gl.getAttribLocation(nGourardBuffer, "vNormal");
+	gl.vertexAttribPointer( vNormalGourard, 3, gl.FLOAT, false, 0, 0 );
+	gl.enableVertexAttribArray( vNormalGourard );
+
+	const vNormalPhong = gl.getAttribLocation(nPhongBuffer, "vNormal");
+	gl.vertexAttribPointer( vNormalPhong, 4, gl.FLOAT, false, 0, 0 );
+	gl.enableVertexAttribArray( vNormalPhong );
+
+	cBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, 16 * maxNumVertices, gl.STATIC_DRAW);
+
+	const vColor = gl.getAttribLocation(wire, "vColor");
+	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(vColor);
 
 	gl.enable(gl.DEPTH_TEST);
 
@@ -86,6 +139,7 @@ function generateSeashell()
 	}
 }
 
+
 function render()
 {
 
@@ -124,16 +178,4 @@ function setupControls() {
 	document.getElementById("cslider").oninput = function() { c = this.value; needsUpdate = true;  }
 	document.getElementById("jslider").oninput = function() { j = this.value; needsUpdate = true;  }
 	document.getElementById("kslider").oninput = function() { k = this.value; needsUpdate = true;  }
-
-
-	/*
-        makeListener("r0", seashell.h.r0)
-        makeListener("z0", seashell.h.z0)
-        makeListener("chir", seashell.h.chir)
-        makeListener("chiz", seashell.h.chiz)
-        makeListener("t0", seashell.h.t0)
-        makeListener("tmax", seashell.h.tmax)
-        makeListener("Cscale", shellParameters.Cscale)
-        makeListener("tstep", seashell.h.tstep)
-        makeListener("bezres", shellParameters.bezres)*/
 }
