@@ -3,14 +3,14 @@ maxNumVertices = 60000;
 
 let Rad, r, a, b ,c ,j ,k;
 let RadMax = 2; let RadMin = 1;
-let rMax = 2; let rMin = 1;
+let rMax = 1.4; let rMin = 0.2;
 let aMax = 1.3; let aMin = 1.1;
 let bMax = 16; let bMin = 3;
-let cMax = 2; let cMin = 1;
+let cMax = 2.5; let cMin = 2;
 let jMax = 12; let jMin = 2;
 let kMax = 3; let kMin = 0;
 
-const step = Math.PI * 6 / 180
+const step = Math.PI * 3 / 180
 
 const WIRE = 1;
 const GOURARD = 2;
@@ -119,7 +119,7 @@ let yRot = 0;
 let xRot = 0;
 let cameraZ = 1;
 
-document.onkeydown = function (e) {
+window.onkeydown = function (e) {
 	let code = e.keyCode ? e.keyCode : e.which;
 	if (code === 37) { //left key
 		yRot -=0.75
@@ -155,16 +155,30 @@ function generateSeashell()
 	colors =[];
 	normalsG = [];
 	normalsP = [];
+
+
 	for (let u = 0; u <= 2 * Math.PI; u += step) {
 		for (let v = 0; v <= 2 * Math.PI; v += step) {
 			let x = (Rad + (r * Math.cos(v))) * (Math.pow(a, u) * Math.cos(j*u));
 			let y = (Rad + (r * Math.cos(v))) * ( (-1) * Math.pow(a, u) * Math.sin(j*u));
-			let z = (-1) * c * (b + (r * Math.sin(v))) * Math.pow(a, u) * (k * Math.sin(v));
+			let z = (-1) * c * (b + (r * Math.sin(v))) * Math.pow(a, u) * (k); //No sin???? ;
 
-			positions.push(vec4(x, z, y, 1));
+			positions.push(vec4(x, z + 30, y, 1));
 			colors.push(vec4(1.0, 0.0, 0.0, 1.0));
 		}
 	}
+	/*
+        for (let v = 0; v <= 2 * Math.PI; v += step) {
+            for (let u = 0; u <= 2 * Math.PI; u += step) {
+                let x = (a * (1 - v / (2 * Math.PI)) * (1 + Math.cos(u)) + c) * Math.cos(j * v);
+                let y = (a * (1 - v / (2 * Math.PI)) * (1 + Math.cos(u)) + c) * Math.sin(j * v);
+                let z = b * v / (2 * Math.PI) + a * (1 - v / (2 * Math.PI)) * Math.sin(u);
+                positions.push(vec4(x, z, y, 1));
+                colors.push(vec4(1.0, 0.0, 0.0, 1.0));
+            }
+        }
+
+    */
 	render()
 }
 
