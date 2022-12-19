@@ -10,35 +10,41 @@ let cMax = 2; let cMin = 1;
 let jMax = 12; let jMin = 2;
 let kMax = 3; let kMin = 0;
 
-const step = Math.PI * 2 / 180
+const step = Math.PI * 6 / 180
+
+const WIRE = 1;
+const GOURARD = 2;
+const PHONG = 3;
+let currProgram = 1;
 
 let canvas, gl
 let wire,phong,gourard
-let wLoc, pLoc, gLoc
+let wLocMV, pLocMV, gLocMV
+let wLocPM, pLocPM, gLocPM
 let mvMatrix
 
 let positions = [];
-let normals = [];
+let colors = [];
+let normalsP = [];
+let normalsG = [];
 
 let vBuffer;
 let nPhongBuffer;
 let nGourardBuffer;
 let cBuffer;
 
+let modelViewMatrix;
+let projectionMatrix;
+const orthoUnit = 50
 
-window.onload = function init() {
-	//canvas = document.getElementById("gl-canvas");
-	//gl = WebGLUtils.setupWebGL(canvas);
+function init() {
+	canvas = document.getElementById("gl-canvas");
+	gl = WebGLUtils.setupWebGL(canvas);
 	if (!gl) {
 		alert("WebGL isn't available");
 	}
 
-	let container = document.getElementById( "graphicsDiv" )
-	let width = container.offsetWidth;
-	let height = container.offsetHeight;
-	gl = WebGLUtils.setupWebGL(container);
-
-	gl.viewport(0, 0, width, height);
+	gl.viewport(0, 0, canvas.width, canvas.height);
 	gl.clearColor(0.85, 0.85, 0.85, 1.0);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -47,13 +53,22 @@ window.onload = function init() {
 	//
 	wire = initShaders(gl, "vertex-shader", "fragment-shader");
 	phong = initShaders(gl, "phong-shader", "fragment-shader");
-	phong = initShaders(gl, "gourard-shader", "fragment-shader");
+	gourard = initShaders(gl, "gourard-shader", "fragment-shader");
 
 	gl.useProgram(wire);
+	currProgram = WIRE;
 
-	wLoc = gl.getUniformLocation(wire, "projectionMatrix");
-	pLoc = gl.getUniformLocation(phong, "projectionMatrix");
-	gLoc = gl.getUniformLocation(gourard, "projectionMatrix");
+	modelViewMatrix = mat4();
+	projectionMatrix = ortho(-orthoUnit, orthoUnit, -orthoUnit, orthoUnit, -orthoUnit, orthoUnit);
+
+	wLocMV = gl.getUniformLocation(wire, "modelViewMatrix");
+	pLocMV = gl.getUniformLocation(phong, "modelViewMatrix");
+	gLocMV = gl.getUniformLocation(gourard, "modelViewMatrix");
+
+	wLocPM = gl.getUniformLocation(wire, "projectionMatrix");
+	pLocPM = gl.getUniformLocation(phong, "projectionMatrix");
+	gLocPM = gl.getUniformLocation(gourard, "projectionMatrix");
+
 
 	vBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
@@ -79,11 +94,11 @@ window.onload = function init() {
 	gl.bindBuffer( gl.ARRAY_BUFFER, nPhongBuffer );
 	gl.bufferData( gl.ARRAY_BUFFER, 16 * maxNumVertices, gl.STATIC_DRAW );
 
-	const vNormalGourard = gl.getAttribLocation(nGourardBuffer, "vNormal");
+	const vNormalGourard = gl.getAttribLocation(gourard, "vNormal");
 	gl.vertexAttribPointer( vNormalGourard, 3, gl.FLOAT, false, 0, 0 );
 	gl.enableVertexAttribArray( vNormalGourard );
 
-	const vNormalPhong = gl.getAttribLocation(nPhongBuffer, "vNormal");
+	const vNormalPhong = gl.getAttribLocation(phong, "vNormal");
 	gl.vertexAttribPointer( vNormalPhong, 4, gl.FLOAT, false, 0, 0 );
 	gl.enableVertexAttribArray( vNormalPhong );
 
@@ -96,53 +111,105 @@ window.onload = function init() {
 	gl.enableVertexAttribArray(vColor);
 
 	gl.enable(gl.DEPTH_TEST);
+	generateSeashell();
 
 }
 
 let yRot = 0;
 let xRot = 0;
-let cameraZ = 0;
+let cameraZ = 1;
 
 document.onkeydown = function (e) {
 	let code = e.keyCode ? e.keyCode : e.which;
 	if (code === 37) { //left key
-		yRot -=0.1
-		return false;
+		yRot -=0.75
+		//return false;
 	} else if (code === 38) { //up key
-		xRot -=0.1
-		return false;
+		xRot -=0.75
+		//return false;
 	} else if (code === 39) { //right key
-		yRot +=0.1
-		return false;
+		yRot +=0.75
+		//return false;
 	} else if (code === 40) { //down key
-		xRot +=0.1
-		return false;
+		xRot +=0.75
+		//return false;
 	} else if (code === 107) { //plus key
-		cameraZ -= 0.5
-		return false;
+		cameraZ += 0.25
+		//return false;
 	} else if (code === 109) { //minus key
-		cameraZ += 0.5
-		return false;
+		cameraZ -= 0.25
+		//return false;
 	}
+	let rotateY = rotate(yRot, [0,1,0]);
+	let rotateX = rotate(xRot, [1,0,0]);
+	let transZ = scale(cameraZ, cameraZ ,cameraZ);
+
+	let temp = mult(rotateY,rotateX);
+	modelViewMatrix = mult(transZ, temp);
+	render();
 };
 
 function generateSeashell()
 {
+	positions = [];
+	colors =[];
+	normalsG = [];
+	normalsP = [];
 	for (let u = 0; u <= 2 * Math.PI; u += step) {
 		for (let v = 0; v <= 2 * Math.PI; v += step) {
-			x = (Rad + (r * Math.cos(v))) * (Math.pow(a, u) * Math.cos(j*u));
-			y = (Rad + (r * Math.cos(v))) * ( (-1) * Math.pow(a, u) * Math.sin(j*u));
-			z = (-1) * c * (b + (r * Math.sin(v))) * Math.pow(a,u) * (k * Math.sin(v));
-			positions = positions.concat([x, z, y]);
-			colors = colors.concat(vec4(1.0, 0.0, 0.0, 1.0));
+			let x = (Rad + (r * Math.cos(v))) * (Math.pow(a, u) * Math.cos(j*u));
+			let y = (Rad + (r * Math.cos(v))) * ( (-1) * Math.pow(a, u) * Math.sin(j*u));
+			let z = (-1) * c * (b + (r * Math.sin(v))) * Math.pow(a, u) * (k * Math.sin(v));
+			positions.push(vec4(x, z, y, 1));
+			colors.push(vec4(1.0, 0.0, 0.0, 1.0));
 		}
 	}
+	render()
 }
 
 
+function calculateGourard()
+{
+	normalsG = [];
+	render()
+}
+
+function calculatePhong()
+{
+	normalsP = [];
+	render()
+}
+
 function render()
 {
+	if (currProgram === WIRE){
+		gl.useProgram(wire);
+		gl.uniformMatrix4fv(wLocMV,false,flatten(modelViewMatrix));
+		gl.uniformMatrix4fv(wLocPM,false,flatten(projectionMatrix));
+		for (let i = 0; i < positions.length; i++) {
+			gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 16 * i, flatten(positions[i]) );
 
+			gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 16 * i, flatten(colors[i]));
+		}
+		/*
+		for (let i = 0; i < positions.length; i++) {
+			gl.drawArrays(gl.LINE_LOOP, i, 2);
+		}
+		*/
+
+		gl.drawArrays(gl.LINE_LOOP, 0, positions.length);
+
+	}else if (currProgram === GOURARD){
+		gl.useProgram(gourard);
+		gl.uniformMatrix4fv(gLocMV,false,flatten(modelViewMatrix));
+		gl.uniformMatrix4fv(gLocPM,false,flatten(projectionMatrix));
+	}else if (currProgram === PHONG) {
+		gl.useProgram(phong);
+		gl.uniformMatrix4fv(pLocMV,false,flatten(modelViewMatrix));
+		gl.uniformMatrix4fv(pLocPM,false,flatten(projectionMatrix));
+	}
 }
 
 
@@ -157,25 +224,20 @@ function setupControls() {
 	document.getElementById("k").appendChild(makeSlider("k", kMin, kMax))
 
 	//Sync values to the data model:
-	/*
-	document.getElementById("r0widget").set(shell.r0)
-	document.getElementById("z0widget").set(shell.z0)
-	document.getElementById("chirwidget").set(shell.chir)
-	document.getElementById("chizwidget").set(shell.chiz)
-	document.getElementById("t0").value = shell.t0
-	document.getElementById("tmax").value = shell.tmax
-	document.getElementById("C0widget").set(shell.C0)
-	document.getElementById("Cscalewidget").set(shell.Cscale)
-	document.getElementById("tstep").value = shell.tstep
-	document.getElementById("bezres").value = shell.bezres
-	*/
+	Rad = parseInt(document.getElementById("Radslider").value)
+	r = parseInt(document.getElementById("rslider").value)
+	a = parseInt(document.getElementById("aslider").value)
+	b = parseInt(document.getElementById("bslider").value)
+	c = parseInt(document.getElementById("cslider").value)
+	j = parseInt(document.getElementById("jslider").value)
+	k = parseInt(document.getElementById("kslider").value)
 
-	// Add event listeners:
-	document.getElementById("Radslider").oninput = function() { Rad = this.value; needsUpdate = true;  }
-	document.getElementById("rslider").oninput = function() { r = this.value; needsUpdate = true;  }
-	document.getElementById("aslider").oninput = function() { a = this.value; needsUpdate = true;  }
-	document.getElementById("bslider").oninput = function() { b = this.value; needsUpdate = true;  }
-	document.getElementById("cslider").oninput = function() { c = this.value; needsUpdate = true;  }
-	document.getElementById("jslider").oninput = function() { j = this.value; needsUpdate = true;  }
-	document.getElementById("kslider").oninput = function() { k = this.value; needsUpdate = true;  }
+	// Add event listeners:11
+	document.getElementById("Radslider").oninput = function() { parseInt(Rad = this.value); generateSeashell(); }
+	document.getElementById("rslider").oninput = function() { parseInt(r = this.value); generateSeashell();  }
+	document.getElementById("aslider").oninput = function() { parseInt(a = this.value); generateSeashell();  }
+	document.getElementById("bslider").oninput = function() { parseInt(b = this.value); generateSeashell();  }
+	document.getElementById("cslider").oninput = function() { parseInt(c = this.value); generateSeashell();  }
+	document.getElementById("jslider").oninput = function() { parseInt(j = this.value); generateSeashell();  }
+	document.getElementById("kslider").oninput = function() { parseInt(k = this.value); generateSeashell();  }
 }
