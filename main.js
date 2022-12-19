@@ -46,6 +46,33 @@ window.onload = function init() {
 
 }
 
+let yRot = 0;
+let xRot = 0;
+let cameraZ = 0;
+
+document.onkeydown = function (e) {
+	let code = e.keyCode ? e.keyCode : e.which;
+	if (code === 37) { //left key
+		yRot -=0.1
+		return false;
+	} else if (code === 38) { //up key
+		xRot -=0.1
+		return false;
+	} else if (code === 39) { //right key
+		yRot +=0.1
+		return false;
+	} else if (code === 40) { //down key
+		xRot +=0.1
+		return false;
+	} else if (code === 107) { //plus key
+		cameraZ -= 0.5
+		return false;
+	} else if (code === 109) { //minus key
+		cameraZ += 0.5
+		return false;
+	}
+};
+
 function generateSeashell()
 {
 
