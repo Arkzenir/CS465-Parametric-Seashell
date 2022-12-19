@@ -75,7 +75,15 @@ document.onkeydown = function (e) {
 
 function generateSeashell()
 {
-
+	for (let u = 0; u <= 2 * Math.PI; u += step) {
+		for (let v = 0; v <= 2 * Math.PI; v += step) {
+			x = (Rad + (r * Math.cos(v))) * (Math.pow(a, u) * Math.cos(j*u));
+			y = (Rad + (r * Math.cos(v))) * ( (-1) * Math.pow(a, u) * Math.sin(j*u));
+			z = (-1) * c * (b + (r * Math.sin(v))) * Math.pow(a,u) * (k * Math.sin(v));
+			positions = positions.concat([x, z, y]);
+			colors = colors.concat(vec4(1.0, 0.0, 0.0, 1.0));
+		}
+	}
 }
 
 function render()
