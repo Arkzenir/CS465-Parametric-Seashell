@@ -12,9 +12,27 @@ let kMax = 3; let kMin = 0;
 
 const step = Math.PI * 3 / 180
 
+let modelViewMatrix;
+let projectionMatrix;
+const orthoUnit = 30;
+
+const lightPosition = vec4(orthoUnit, orthoUnit/2.0, orthoUnit/2.0, 0.0);
+const lightAmbient = vec4(0.5, 0.5, 0.5, 1.0);
+const lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
+const lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
+
+const materialAmbient = vec4(1.0, 0.0, 1.0, 1.0);
+const materialDiffuse = vec4(1.0, 0.8, 0.0, 1.0);
+const materialSpecular = vec4(1.0, 0.8, 0.0, 1.0);
+const materialShininess = 100.0;
+
+let ambientColor, diffuseColor, specularColor;
+
+
 const WIRE = 1;
 const GOURARD = 2;
 const PHONG = 3;
+const TEXTURE = 4;
 let currProgram = 1;
 
 let canvas, gl
@@ -32,10 +50,6 @@ let vBuffer;
 let nPhongBuffer;
 let nGourardBuffer;
 let cBuffer;
-
-let modelViewMatrix;
-let projectionMatrix;
-const orthoUnit = 50
 
 function init() {
 	canvas = document.getElementById("gl-canvas");
@@ -69,6 +83,38 @@ function init() {
 	pLocPM = gl.getUniformLocation(phong, "projectionMatrix");
 	gLocPM = gl.getUniformLocation(gourard, "projectionMatrix");
 
+	let ambientProduct = mult(lightAmbient, materialAmbient);
+	let diffuseProduct = mult(lightDiffuse, materialDiffuse);
+	let specularProduct = mult(lightSpecular, materialSpecular);
+
+	gl.useProgram(gourard);
+
+	gl.uniform4fv(gl.getUniformLocation(gourard, "ambientProduct"),
+		flatten(ambientProduct));
+	gl.uniform4fv(gl.getUniformLocation(gourard, "diffuseProduct"),
+		flatten(diffuseProduct) );
+	gl.uniform4fv(gl.getUniformLocation(gourard, "specularProduct"),
+		flatten(specularProduct) );
+	gl.uniform4fv(gl.getUniformLocation(gourard, "lightPosition"),
+		flatten(lightPosition) );
+	gl.uniform1f(gl.getUniformLocation(gourard,
+		"shininess"),materialShininess);
+
+
+	gl.useProgram(phong);
+
+	gl.uniform4fv(gl.getUniformLocation(phong, "ambientProduct"),
+		flatten(ambientProduct));
+	gl.uniform4fv(gl.getUniformLocation(phong, "diffuseProduct"),
+		flatten(diffuseProduct) );
+	gl.uniform4fv(gl.getUniformLocation(phong, "specularProduct"),
+		flatten(specularProduct) );
+	gl.uniform4fv(gl.getUniformLocation(phong, "lightPosition"),
+		flatten(lightPosition) );
+	gl.uniform1f(gl.getUniformLocation(phong,
+		"shininess"),materialShininess);
+
+	gl.useProgram(wire);
 
 	vBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
@@ -112,7 +158,6 @@ function init() {
 
 	gl.enable(gl.DEPTH_TEST);
 	generateSeashell();
-
 }
 
 let yRot = 0;
@@ -122,16 +167,16 @@ let cameraZ = 1;
 window.onkeydown = function (e) {
 	let code = e.keyCode ? e.keyCode : e.which;
 	if (code === 37) { //left key
-		yRot -=0.75
+		yRot -=1.75
 		//return false;
 	} else if (code === 38) { //up key
-		xRot -=0.75
+		xRot -=1.75
 		//return false;
 	} else if (code === 39) { //right key
-		yRot +=0.75
+		yRot +=1.75
 		//return false;
 	} else if (code === 40) { //down key
-		xRot +=0.75
+		xRot +=1.75
 		//return false;
 	} else if (code === 107) { //plus key
 		cameraZ += 0.25
@@ -156,14 +201,54 @@ function generateSeashell()
 	normalsG = [];
 	normalsP = [];
 
-
-	for (let u = 0; u <= 2 * Math.PI; u += step) {
+	let count = 0;
+	for (let u = 0; u < 2 * Math.PI; u += step) {
 		for (let v = 0; v <= 2 * Math.PI; v += step) {
-			let x = (Rad + (r * Math.cos(v))) * (Math.pow(a, u) * Math.cos(j*u));
-			let y = (Rad + (r * Math.cos(v))) * ( (-1) * Math.pow(a, u) * Math.sin(j*u));
-			let z = (-1) * c * (b + (r * Math.sin(v))) * Math.pow(a, u) * (k); //No sin???? ;
+			let innerU = u;
+			let innerV = v;
+			if (count === 1) {
+				innerU += step;
+				innerV -= step;
+			}
+			else if (count === 2) {
+				innerU += step;
+				innerV -= step;
+			}
+			else if (count === 3){
+				innerV -= 2 * step;
+			}
+			if (count === 4) count = 1;
+			/*
+			if (count === 4){
+				innerV = -4 * step;
+				count = 0;
+			}
+			*/
+			count++;
 
-			positions.push(vec4(x, z + 30, y, 1));
+			let x = (Rad + (r * Math.cos(innerV))) * (Math.pow(a, innerU) * Math.cos(j*innerU));
+			let y = (Rad + (r * Math.cos(innerV))) * ( (-1) * Math.pow(a, innerU) * Math.sin(j*innerU));
+			let z = (-1) * c * (b + (r * Math.sin(innerV))) * Math.pow(a, innerU) * (k); //No sin???? ;
+
+			//Take partial derivatives of X Y and Z with respect to U and V
+			let derivativeUX = 0;
+			let derivativeUY = 0;
+			let derivativeUZ = 0
+
+			let derivativeVX = 0;
+			let derivativeVY = 0;
+			let derivativeVZ = 0;
+
+			//Reverse cross order if this does not work
+			let vecDU = vec3(derivativeUX, derivativeUY, derivativeUZ);
+			let vecDV = vec3(derivativeVX, derivativeVY, derivativeVZ);
+			normalsG.push(cross(vecDU, vecDV));
+
+			vecDU = vec4(derivativeUX, derivativeUY, derivativeUZ, 1);
+			vecDV = vec4(derivativeVX, derivativeVY, derivativeVZ, 1);
+			normalsP.push(cross(vecDU, vecDV));
+
+			positions.push(vec4(x, z + orthoUnit * 1.5, y, 1));
 			colors.push(vec4(1.0, 0.0, 0.0, 1.0));
 		}
 	}
@@ -182,19 +267,6 @@ function generateSeashell()
 	render()
 }
 
-
-function calculateGourard()
-{
-	normalsG = [];
-	render()
-}
-
-function calculatePhong()
-{
-	normalsP = [];
-	render()
-}
-
 function render()
 {
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -203,6 +275,7 @@ function render()
 		gl.useProgram(wire);
 		gl.uniformMatrix4fv(wLocMV,false,flatten(modelViewMatrix));
 		gl.uniformMatrix4fv(wLocPM,false,flatten(projectionMatrix));
+		/*
 		for (let i = 0; i < positions.length; i++) {
 			gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
 			gl.bufferSubData( gl.ARRAY_BUFFER, 16 * i, flatten(positions[i]) );
@@ -210,6 +283,14 @@ function render()
 			gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer );
 			gl.bufferSubData( gl.ARRAY_BUFFER, 16 * i, flatten(colors[i]));
 		}
+		*/
+
+		gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
+		gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(positions) );
+
+		gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer );
+		gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(colors));
+
 		/*
 		for (let i = 0; i < positions.length; i++) {
 			gl.drawArrays(gl.LINE_LOOP, i, 2);
@@ -222,10 +303,27 @@ function render()
 		gl.useProgram(gourard);
 		gl.uniformMatrix4fv(gLocMV,false,flatten(modelViewMatrix));
 		gl.uniformMatrix4fv(gLocPM,false,flatten(projectionMatrix));
+
+		gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
+		gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(positions) );
+
+		gl.bindBuffer( gl.ARRAY_BUFFER, nGourardBuffer );
+		gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(normalsG));
+
+		gl.drawArrays(gl.TRIANGLE_FAN, 0, positions.length);
+
 	}else if (currProgram === PHONG) {
 		gl.useProgram(phong);
 		gl.uniformMatrix4fv(pLocMV,false,flatten(modelViewMatrix));
 		gl.uniformMatrix4fv(pLocPM,false,flatten(projectionMatrix));
+
+		gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
+		gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(positions) );
+
+		gl.bindBuffer( gl.ARRAY_BUFFER, nPhongBuffer );
+		gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(normalsP));
+
+		gl.drawArrays(gl.TRIANGLES, 0, positions.length);
 	}
 }
 
@@ -239,6 +337,11 @@ function setupControls() {
 	document.getElementById("c").appendChild(makeSlider("c", cMin, cMax))
 	document.getElementById("j").appendChild(makeSlider("j", jMin, jMax))
 	document.getElementById("k").appendChild(makeSlider("k", kMin, kMax))
+
+	document.getElementById("wire").onclick = function () {currProgram = WIRE; render();};
+	document.getElementById("gourard").onclick = function () {currProgram = GOURARD; render();};
+	document.getElementById("phong").onclick = function () {currProgram = PHONG; render();};
+	document.getElementById("texture").onclick = function () {currProgram = TEXTURE; render();};
 
 	//Sync values to the data model:
 	Rad = parseFloat(document.getElementById("Radslider").value)
