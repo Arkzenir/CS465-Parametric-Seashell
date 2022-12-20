@@ -206,25 +206,30 @@ function generateSeashell()
 		for (let v = 0; v <= 2 * Math.PI; v += step) {
 			let innerU = u;
 			let innerV = v;
-			if (count === 1) {
+
+			if (count % 4 === 0){
+				innerV -= (count / 2 * step);
+			}
+			else if (count % 4 === 1) {
 				innerU += step;
-				innerV -= step;
+				innerV -= ((count-1) / 2 * step);
 			}
-			else if (count === 2) {
+			else if (count % 4 === 2) {
 				innerU += step;
-				innerV -= step;
+				innerV -= (count / 2 * step);
 			}
-			else if (count === 3){
-				innerV -= 2 * step;
+			else if (count % 4 === 3){
+				innerV -= ((count+1) / 2 * step);
+				count = 0;
 			}
-			if (count === 4) count = 1;
+			count++;
 			/*
 			if (count === 4){
 				innerV = -4 * step;
 				count = 0;
 			}
 			*/
-			count++;
+
 
 			let x = (Rad + (r * Math.cos(innerV))) * (Math.pow(a, innerU) * Math.cos(j*innerU));
 			let y = (Rad + (r * Math.cos(innerV))) * ( (-1) * Math.pow(a, innerU) * Math.sin(j*innerU));
@@ -244,8 +249,8 @@ function generateSeashell()
 			let vecDV = vec3(derivativeVX, derivativeVY, derivativeVZ);
 			normalsG.push(cross(vecDU, vecDV));
 
-			vecDU = vec4(derivativeUX, derivativeUY, derivativeUZ, 1);
-			vecDV = vec4(derivativeVX, derivativeVY, derivativeVZ, 1);
+			vecDU = vec3(derivativeUX, derivativeUY, derivativeUZ);
+			vecDV = vec3(derivativeVX, derivativeVY, derivativeVZ);
 			normalsP.push(cross(vecDU, vecDV));
 
 			positions.push(vec4(x, z + orthoUnit * 1.5, y, 1));
@@ -304,12 +309,22 @@ function render()
 		gl.uniformMatrix4fv(gLocMV,false,flatten(modelViewMatrix));
 		gl.uniformMatrix4fv(gLocPM,false,flatten(projectionMatrix));
 
+
 		gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
 		gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(positions) );
 
 		gl.bindBuffer( gl.ARRAY_BUFFER, nGourardBuffer );
 		gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(normalsG));
 
+		/*
+		for (let i = 0; i < positions.length; i++) {
+			gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 16 * i, flatten(positions[i]) );
+
+			gl.bindBuffer( gl.ARRAY_BUFFER, nGourardBuffer );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 12 * i, flatten(normalsG[i]));
+		}
+		*/
 		gl.drawArrays(gl.TRIANGLE_FAN, 0, positions.length);
 
 	}else if (currProgram === PHONG) {
@@ -317,13 +332,43 @@ function render()
 		gl.uniformMatrix4fv(pLocMV,false,flatten(modelViewMatrix));
 		gl.uniformMatrix4fv(pLocPM,false,flatten(projectionMatrix));
 
+
 		gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
 		gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(positions) );
 
 		gl.bindBuffer( gl.ARRAY_BUFFER, nPhongBuffer );
 		gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(normalsP));
 
-		gl.drawArrays(gl.TRIANGLES, 0, positions.length);
+		/*
+		let bufferForward = 0;
+		for (let i = 0; i < positions.length; i += 3) {
+			gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 16 * bufferForward, flatten(positions[i]) );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 16 * (bufferForward + 1), flatten(positions[i + 1]) );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 16 * (bufferForward + 2), flatten(positions[i + 2]) );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 16 * (bufferForward + 3), flatten(positions[i]) );
+			if (i + 3 < positions.length)
+				gl.bufferSubData( gl.ARRAY_BUFFER, 16 * (bufferForward + 4), flatten(positions[i + 3]) );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 16 * (bufferForward + 5), flatten(positions[i + 2]) );
+
+
+			gl.bindBuffer( gl.ARRAY_BUFFER, nPhongBuffer );
+
+			gl.bufferSubData( gl.ARRAY_BUFFER, 12 * bufferForward, flatten(normalsP[i]));
+			gl.bufferSubData( gl.ARRAY_BUFFER, 12 * (bufferForward + 1), flatten(normalsP[i + 1]));
+			gl.bufferSubData( gl.ARRAY_BUFFER, 12 * (bufferForward + 2), flatten(normalsP[i + 2]));
+			gl.bufferSubData( gl.ARRAY_BUFFER, 12 * (bufferForward + 3), flatten(normalsP[i]));
+			if (i + 3 < normalsP.length)
+				gl.bufferSubData( gl.ARRAY_BUFFER, 12 * (bufferForward + 4), flatten(normalsP[i + 3]));
+			gl.bufferSubData( gl.ARRAY_BUFFER, 12 * (bufferForward + 5), flatten(normalsP[i + 2]));
+
+			bufferForward += 6;
+		}
+		*/
+
+		gl.drawArrays(gl.TRIANGLE_FAN, 0, positions.length * 2);
+	} else if (currProgram === TEXTURE){
+
 	}
 }
 
