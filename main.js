@@ -235,15 +235,15 @@ function generateSeashell()
 			let y = (Rad + (r * Math.cos(innerV))) * ( (-1) * Math.pow(a, innerU) * Math.sin(j*innerU));
 			let z = (-1) * c * (b + (r * Math.sin(innerV))) * Math.pow(a, innerU) * (k); //No sin???? ;
 
-			normalsP.push(getNormal(u, v, x, y, z));
+			//normalsP.push(getNormal(u, v));
 			//Take partial derivatives of X Y and Z with respect to U and V
-			/*let derivativeUX = 0;
-			let derivativeUY = 0;
-			let derivativeUZ = 0
+			let derivativeUX = ( (r * Math.cos(v) + Rad) * Math.pow(a,u) * Math.log(a) * Math.cos(j*u)) - ( (r * Math.cos(v) + Rad) * Math.pow(a,u) * j * Math.sin(j*u) );
+			let derivativeUY = ( (-1) * ( (r * Math.cos(v) + Rad) * Math.pow(a,u) * Math.log(a) * Math.sin(j*u))) - ( (r * Math.cos(v) + Rad) * Math.pow(a,u) * j * Math.cos(j*u) );
+			let derivativeUZ = (-1) * c * k * Math.pow(a,u) * Math.log(a) * (b + (r * Math.sin(v)));
 
-			let derivativeVX = 0;
-			let derivativeVY = 0;
-			let derivativeVZ = 0;
+			let derivativeVX = r * Math.sin(v) * Math.pow(a,u) * Math.cos(j*u);
+			let derivativeVY = (-1) * r * Math.sin(v) * Math.pow(a,u) * Math.sin(j*u);
+			let derivativeVZ = c * Math.pow(a,u) * k * r * Math.cos(v);
 
 			//Reverse cross order if this does not work
 			let vecDU = vec3(derivativeUX, derivativeUY, derivativeUZ);
@@ -252,7 +252,7 @@ function generateSeashell()
 
 			vecDU = vec3(derivativeUX, derivativeUY, derivativeUZ);
 			vecDV = vec3(derivativeVX, derivativeVY, derivativeVZ);
-			normalsP.push(cross(vecDU, vecDV));*/
+			normalsP.push(cross(vecDU, vecDV));
 
 			positions.push(vec4(x, z + orthoUnit * 1.5, y, 1));
 			colors.push(vec4(1.0, 0.0, 0.0, 1.0));
@@ -273,12 +273,12 @@ function generateSeashell()
 	render()
 }
 
-function getNormal(u, v, x, y, z){
+function getNormal(u, v){
 	let veci = ( (-1) * Math.pow(a,u) * (r * Math.cos(v) + Rad) * (j * Math.cos(j*u) + Math.log(a) * Math.sin(j * u)) * c * k * r * Math.pow(a,u) * Math.cos(v))
 		- (c * k * Math.pow(a,u) * Math.log(a) * (r * Math.sin(v) + b) * r * Math.sin(v) * Math.pow(a,u) * Math.sin(j*u));
 	let vecj = (-1) * Math.sin(v) * Math.pow(a,u) * Math.cos(j*u) * c * k * Math.pow(a,u) * Math.log(a) * (r * Math.sin(v) + b);
 	let veck = (r * Math.sin(v) * Math.pow(a,u) * Math.cos(j*u) * Math.pow(a,u) * (r * Math.cos(v) + Rad) * (j * Math.cos(j*u) + (Math.log(a) * Math.sin(j*u)) ))
-		- (( (r * Math.cos(v) + Rad) * Math.log(a,u)) * ((Math.log(a) * Math.cos(j*u)) - (j * Math.sin(j*u))) * r * Math.sin(v) * Math.log(a) * Math.sin(j*u));
+		- (( (r * Math.cos(v) + Rad) * Math.pow(a,u)) * ((Math.log(a) * Math.cos(j*u)) - (j * Math.sin(j*u))) * r * Math.sin(v) * Math.log(a) * Math.sin(j*u));
 	return (vec3( veci, vecj, veck));
 }
 
