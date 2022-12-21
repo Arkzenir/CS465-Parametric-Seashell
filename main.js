@@ -39,7 +39,7 @@ let canvas, gl
 let wire,phong,gourard
 let wLocMV, pLocMV, gLocMV
 let wLocPM, pLocPM, gLocPM
-let mvMatrix
+let normalMatrixLoc;
 
 let positions = [];
 let colors = [];
@@ -78,6 +78,8 @@ function init() {
 	wLocMV = gl.getUniformLocation(wire, "modelViewMatrix");
 	pLocMV = gl.getUniformLocation(phong, "modelViewMatrix");
 	gLocMV = gl.getUniformLocation(gourard, "modelViewMatrix");
+
+	normalMatrixLoc = gl.getUniformLocation(phong, "normalMatrix");
 
 	wLocPM = gl.getUniformLocation(wire, "projectionMatrix");
 	pLocPM = gl.getUniformLocation(phong, "projectionMatrix");
@@ -235,7 +237,6 @@ function generateSeashell()
 			let y = (Rad + (r * Math.cos(innerV))) * ( (-1) * Math.pow(a, innerU) * Math.sin(j*innerU));
 			let z = (-1) * c * (b + (r * Math.sin(innerV))) * Math.pow(a, innerU) * (k); //No sin???? ;
 
-			//normalsP.push(getNormal(u, v));
 			//Take partial derivatives of X Y and Z with respect to U and V
 			let derivativeUX = ( (r * Math.cos(v) + Rad) * Math.pow(a,u) * Math.log(a) * Math.cos(j*u)) - ( (r * Math.cos(v) + Rad) * Math.pow(a,u) * j * Math.sin(j*u) );
 			let derivativeUY = ( (-1) * ( (r * Math.cos(v) + Rad) * Math.pow(a,u) * Math.log(a) * Math.sin(j*u))) - ( (r * Math.cos(v) + Rad) * Math.pow(a,u) * j * Math.cos(j*u) );
@@ -249,9 +250,6 @@ function generateSeashell()
 			let vecDU = vec3(derivativeUX, derivativeUY, derivativeUZ);
 			let vecDV = vec3(derivativeVX, derivativeVY, derivativeVZ);
 			normalsG.push(cross(vecDU, vecDV));
-
-			vecDU = vec3(derivativeUX, derivativeUY, derivativeUZ);
-			vecDV = vec3(derivativeVX, derivativeVY, derivativeVZ);
 			normalsP.push(cross(vecDU, vecDV));
 
 			positions.push(vec4(x, z + orthoUnit * 1.5, y, 1));
@@ -342,12 +340,20 @@ function render()
 		gl.uniformMatrix4fv(pLocMV,false,flatten(modelViewMatrix));
 		gl.uniformMatrix4fv(pLocPM,false,flatten(projectionMatrix));
 
+		let normalMatrix =  [
+			vec3(modelViewMatrix[0][0], modelViewMatrix[0][1], modelViewMatrix[0][2]),
+			vec3(modelViewMatrix[1][0], modelViewMatrix[1][1], modelViewMatrix[1][2]),
+			vec3(modelViewMatrix[2][0], modelViewMatrix[2][1], modelViewMatrix[2][2])
+		];
+		gl.uniformMatrix3fv(normalMatrixLoc, false, flatten(normalMatrix) );
 
 		gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
 		gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(positions) );
 
 		gl.bindBuffer( gl.ARRAY_BUFFER, nPhongBuffer );
 		gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(normalsP));
+
+
 
 		/*
 		let bufferForward = 0;
