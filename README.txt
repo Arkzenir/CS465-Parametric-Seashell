@@ -10,3 +10,5 @@ Wireframe render - Renders the model in wireframe
 Phong render - Renders the model in solid 3d with Phong shading
 Gouraud render - Renders the model in solid 3d with Phong shading
 Texture render - Non functional
+
+Demo at: https://arkzenir.github.io/CS465-Parametric-Seashell/
